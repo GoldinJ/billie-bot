@@ -14,14 +14,17 @@
 #
 
 # [START documentai_process_document]
+import os
+import dotenv
 from typing import Optional
 from google.api_core.client_options import ClientOptions
 from google.cloud import documentai  # type: ignore
 
+dotenv.load_dotenv()
 # TODO(developer): Uncomment these variables before running the sample.
-project_id = "161453498735"  # Project ID to use
-location = "us" # Format is "us" or "eu"
-processor_id = "af19ec7c75d797b9" # Create processor before running sample
+project_id = os.getenv("GOOGLE_PROJECT_ID")  # Project ID to use
+location = os.getenv("GOOGLE_PROCESSOR_REGION")  # Format is "us" or "eu"
+processor_id = os.getenv("GOOGLE_PROCESSOR_ID")  # Create processor before running sample
 file_path = r"C:\Users\goldi\Documents\PythonProjects\billie-bot\media\wamid.HBgMOTcyNTQ2NDIyMjQxFQIAEhggQUNENUQwMzE4MDM4M0E4ODEyRTU5MzExMEJDQTJBOTIA.jpg"
 mime_type = "image/jpeg" # Refer to https://cloud.google.com/document-ai/docs/file-types for supported file types
 # field_mask = "text,entities,pages.pageNumber"  # Optional. The fields to return in the Document object.
