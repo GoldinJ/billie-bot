@@ -106,7 +106,7 @@ def get_media_url(payload: dict):
     url = prepare_url(media_id)
     
     logging.info(f"Media ID: {media_id}")
-    logging.info(f"Media URL: {url}")
+    logging.info(f"Requesting Media URL from: {url}")
     
     headers = {
         "Authorization": f"Bearer {os.getenv('ACCESS_TOKEN')}",
@@ -120,19 +120,24 @@ def get_media_url(payload: dict):
     else:
         logging.error(f"Failed to get media URL. Status code: {response.status_code}")
         return None
-    
-def download_media(url: str, save_path: str):
+
+def download_media(media_url: str, save_path: str):
     headers = {
         "Authorization": f"Bearer {os.getenv('ACCESS_TOKEN')}",
         "Content-Type": "application/json"
     }
-    response = requests.get(url, headers=headers)
+    if not media_url:
+        logging.error("No media URL found.")
+        return
+    response = requests.get(media_url, headers=headers)
     if response.status_code == 200:
         with open(save_path, 'wb') as f:
             f.write(response.content)
         logging.info(f"Media downloaded to {save_path}")
+        return save_path
     else:
-        logging.error(f"Failed to download media from {url}. Status code: {response.status_code}")
+        logging.error(f"Failed to download media from {media_url}. Status code: {response.status_code}")
+        logging.error(f"Response: {response.text}")
     
 def log_payload(payload: str):
     _ ,number, body, message_type = parse_response(payload)

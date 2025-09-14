@@ -1,5 +1,6 @@
 import os
 import logging
+from uuid import uuid1
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request
 from .security import verify_message
@@ -29,27 +30,43 @@ def verify():
         # Responds with '400 Bad Request' if verify tokens do not match
         logger.info("MISSING_PARAMETER")
         return jsonify({"status": "error", "message": "Missing parameters"}), HTTPStatus.BAD_REQUEST.value
-    
+
+def handle_media(response: dict, mtype:str="image"):
+    extension_map = {
+        "image": "jpg",
+        "document": "pdf"
+    }
+    ext = extension_map.get(mtype, None)
+    if not ext:
+        send_message("Unsupported media type.")
+        return
+    media_url = get_media_url(response)
+    if media_url:
+        uuid = str(uuid1())
+        save_path = os.path.join(os.getenv("MEDIA_DIR", "./media"), f"{uuid}.{ext}")
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        download_media(media_url, save_path)
+        send_message("Media received and saved!")
+    else:
+        send_message("No media found.")
+
 @verify_message
 def handle_message():
-    payload = request.get_json()
-    message_status = get_message_status(payload)
-    if not payload:
+    response = request.get_json()
+    message_status = get_message_status(response)
+    if not response:
         return jsonify({"status": "error", "message": "Invalid JSON provided"}), HTTPStatus.BAD_REQUEST.value
     if message_status:
         logging.info(f"Message status update received - {message_status.upper()}")
         return jsonify({"status": "ignored", "message": "No message to process"}), HTTPStatus.OK.value
     
-    log_payload(payload)
-    if get_message_type(payload) == 'image':
-        media_url = get_media_url(payload)
-        if media_url:
-            save_path = os.path.join(os.getenv("MEDIA_DIR", "./media"), f"{parse_response(payload)[0]}.jpg")
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            download_media(media_url, save_path)
-            send_message("Image received and saved!")
+    mtype = get_message_type(response)
+    if mtype != "text":
+        handle_media(response, mtype)
     else:
         send_message("Message received!")
+        
+    log_payload(response)
     return jsonify({"status": "success"}), HTTPStatus.OK.value
     
 
