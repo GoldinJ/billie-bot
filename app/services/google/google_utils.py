@@ -26,7 +26,25 @@ def layout_to_text(layout: documentai.Document.Page.Layout, text: str) -> str:
         for segment in layout.text_anchor.text_segments
     )
 
-def process_document(file_path: str,
+def extract_entity(entity: documentai.Document.Entity) -> None:
+    # Fields detected. For a full list of fields for each processor see
+    # the processor documentation:
+    # https://cloud.google.com/document-ai/docs/processors-list
+    key = entity.type_
+
+    # Some other value formats in addition to text are available
+    # e.g. dates: `entity.normalized_value.date_value.year`
+    text_value = entity.text_anchor.content or entity.mention_text
+    confidence = entity.confidence
+    normalized_value = entity.normalized_value.text
+    return {key: {
+        "text_value": text_value,
+        "confidence": confidence,
+        "normalized_value": normalized_value
+    }}
+
+
+def get_document(file_path: str,
                      project_id: str,
                      location: Literal["us", "eu"],
                      processor_id: str,
@@ -103,3 +121,13 @@ def process_document_form_sample(document: documentai.Document):
 
     return {k: str(v).strip() for k, v in form.items()}
 
+def process_document(*args, **kwargs) -> dict:
+    document = get_document(*args, **kwargs)
+    result = {}
+    if document.entities:
+        for entity in document.entities:
+            result.update(extract_entity(entity))
+    else:
+        logging.warning("No entities found in the document.")
+        
+    return result
