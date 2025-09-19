@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Optional, Literal
+from typing import Optional, Literal, Tuple
 from google.api_core.client_options import ClientOptions
 from google.cloud import documentai
 
@@ -121,13 +121,14 @@ def process_document_form_sample(document: documentai.Document):
 
     return {k: str(v).strip() for k, v in form.items()}
 
-def process_document(*args, **kwargs) -> dict:
+
+def process_document(*args, **kwargs) -> Tuple[dict, str]:
     document = get_document(*args, **kwargs)
-    result = {}
+    fields = {}
     if document.entities:
         for entity in document.entities:
-            result.update(extract_entity(entity))
+            fields.update(extract_entity(entity))
     else:
         logging.warning("No entities found in the document.")
         
-    return result
+    return fields, document.text
