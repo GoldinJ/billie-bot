@@ -4,7 +4,7 @@ from splitwise.exception import SplitwiseNotAllowedException
 from app.services.invoice_processor.invoice import Invoice
 from app.services.splitwise.spitwise_utils import (
     create_expense,
-    post_expence
+    post_expense
 )
 
 @pytest.fixture
@@ -49,18 +49,20 @@ def group_id():
     yield os.getenv("SPLITWISE_GROUP_ID")
 
 def test_create_expence(group_id, invoice):
-    expense = create_expense(group_id, invoice)
+    file_path = r'"C:\Users\goldi\Desktop\Billi-bot model set\training\cellcom\83c6a874-9210-11f0-abe0-5cbaef186814.jpg"'
+    expense = create_expense(group_id, invoice, file_path)
     assert expense
     
 def test_post_expence(group_id, invoice):
-    expence = create_expense(group_id, invoice)
-    _id = post_expence(expence)
+    file_path = r"C:\Users\goldi\Desktop\Billi-bot model set\training\cellcom\83c6a874-9210-11f0-abe0-5cbaef186814.jpg"
+    expence = create_expense(group_id, invoice, file_path)
+    _id = post_expense(expence)
     assert type(_id) is int
     assert _id != 0
     
 def test_post_expence_unknown_group(invoice):
     expence = create_expense(9999, invoice)
     with pytest.raises(SplitwiseNotAllowedException):
-        _id = post_expence(expence)
+        _id = post_expense(expence)
   
     
