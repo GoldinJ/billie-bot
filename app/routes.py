@@ -1,10 +1,16 @@
 import os
+import pprint
 import logging
 from uuid import uuid1
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request
+from splitwise.exception import SplitwiseException
+
+from .services.invoice_processor.proccessor import InvoiceProcessor, Invoice
+from .services.splitwise.spitwise_utils import create_expense, post_expense
+
 from .security import verify_message
-from .utils import get_message_type, log_payload, parse_response, get_media_url, download_media, send_message, get_message_status
+from .utils import get_message_type, log_response, get_media_url, download_media, send_message, get_message_status
 
 logger = logging.getLogger(__name__)
 webhook = Blueprint('webhook', __name__)
@@ -31,6 +37,29 @@ def verify():
         logger.info("MISSING_PARAMETER")
         return jsonify({"status": "error", "message": "Missing parameters"}), HTTPStatus.BAD_REQUEST.value
 
+def handle_expense(invoice: Invoice, file_path: str):
+    if invoice is None:
+        logging.error("Failed to process invoice")
+        return jsonify({"error": "Failed to process invoice"}), HTTPStatus.RESET_CONTENT.value
+    
+    group_id = os.getenv("SPLITWISE_GROUP_ID")
+    expense = create_expense(group_id, invoice, file_path)
+    if expense is None:
+        logging.info("Unsupported invoice type")
+        send_message("Unsupported invoice type")
+        return jsonify({"error": "Unsupported invoice type"}), HTTPStatus.RESET_CONTENT.value
+    
+    _id, errors = post_expense(expense)
+    logging.debug(f"New expense created: {_id}")
+    
+    if errors:
+        send_message("Some errors, happened while trying to post expense. See log for further detais...")
+        return jsonify({"error": "Failed to post invoice"}), HTTPStatus.BAD_REQUEST.value
+    else:
+        send_message(f"*New expense created*:\nDescription - *{invoice.description}*\nCost - *{invoice.cost}*")
+        
+    return "", HTTPStatus.CREATED.value
+
 def handle_media(response: dict, mtype:str="image"):
     extension_map = {
         "image": "jpg",
@@ -39,21 +68,33 @@ def handle_media(response: dict, mtype:str="image"):
     ext = extension_map.get(mtype, None)
     if not ext:
         send_message("Unsupported media type.")
-        return
-    media_url = get_media_url(response)
-    if media_url:
-        uuid = str(uuid1())
-        save_path = os.path.join(os.getenv("MEDIA_DIR", "./media"), f"{uuid}.{ext}")
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        download_media(media_url, save_path)
-        send_message("Media received and saved!")
-    else:
-        send_message("No media found.")
+        return "", HTTPStatus.UNSUPPORTED_MEDIA_TYPE.value
+    try:
+        media_url = get_media_url(response)
+        if media_url:
+            uuid = str(uuid1())
+            save_path = os.path.join(os.getenv("MEDIA_DIR", "./media"), f"{uuid}.{ext}")
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            file_path = download_media(media_url, save_path)
+            invoice = InvoiceProcessor(file_path).process_invoice()
+            response = handle_expense(invoice, file_path)
+            return response
+        else:
+            send_message("No media found.")
+            return jsonify({"error": "No media found"}), HTTPStatus.BAD_REQUEST.value
+    except SplitwiseException as e:
+        logging.error(exc_info=True)
+        send_message("Some error happened. Failed to create an expense")
+        return jsonify({"error": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR.value
+    except Exception as e:
+        logging.error(e, exc_info=True)
+        return jsonify({"error": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR.value
 
 @verify_message
 def handle_message():
     response = request.get_json()
     message_status = get_message_status(response)
+    log_response(response)
     if not response:
         return jsonify({"status": "error", "message": "Invalid JSON provided"}), HTTPStatus.BAD_REQUEST.value
     if message_status:
@@ -62,11 +103,11 @@ def handle_message():
     
     mtype = get_message_type(response)
     if mtype != "text":
-        handle_media(response, mtype)
+        response = handle_media(response, mtype)
+        return response
     else:
         send_message("Message received!")
         
-    log_payload(response)
     return jsonify({"status": "success"}), HTTPStatus.OK.value
     
 

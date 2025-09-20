@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 import pprint
 import requests
@@ -46,7 +47,7 @@ def get_sender(payload: dict) -> str:
                 .get("changes", [])[0]
                 .get("value", {})
                 .get("messages", [])[0]
-                .get("from", "")).strip()
+                .get("from"))
     except (IndexError, AttributeError):
         return None
         
@@ -56,7 +57,7 @@ def get_message_type(payload: dict) -> str:
                 .get("changes", [])[0]
                 .get("value", {})
                 .get("messages", [])[0]
-                .get("type", ""))
+                .get("type"))
     except (IndexError, AttributeError):
         return None
     
@@ -66,17 +67,21 @@ def get_message_status(payload: dict) -> str:
                 .get("changes", [])[0]
                 .get("value", {})
                 .get("statuses", [])[0]
-                .get("status", ""))
+                .get("status"))
     except (IndexError, AttributeError):
         return None
 
-def get_image_id(payload: dict) -> str:
-    return (payload.get("entry", [])[0]
-            .get("changes", [])[0]
-            .get("value", {})
-            .get("messages", [])[0]
-            .get("image", {})
-            .get("id", ""))
+def get_media_id(payload: dict) -> str:
+    media_type = get_message_type(payload)
+    try:
+        return (payload.get("entry", [])[0]
+                .get("changes", [])[0]
+                .get("value", {})
+                .get("messages", [])[0]
+                .get(media_type, {})
+                .get("id", None))
+    except (IndexError, AttributeError):
+        return None
 
 def parse_response(payload: dict):
     try:
@@ -97,12 +102,12 @@ def get_body(payload: str):
                 .get("value", {})
                 .get("messages", [])[0]
                 .get("text", {})
-                .get("body", ""))
+                .get("body"))
     except (IndexError, AttributeError):
         return None
     
 def get_media_url(payload: dict):
-    media_id = get_image_id(payload)
+    media_id = get_media_id(payload)
     url = prepare_url(media_id)
     
     logging.info(f"Media ID: {media_id}")
@@ -139,6 +144,5 @@ def download_media(media_url: str, save_path: str):
         logging.error(f"Failed to download media from {media_url}. Status code: {response.status_code}")
         logging.error(f"Response: {response.text}")
     
-def log_payload(payload: str):
-    _ ,number, body, message_type = parse_response(payload)
-    logging.info(f"Received message from {number} ({message_type}): {body}")
+def log_response(response: str):
+    logging.debug(json.dumps(response, indent=2))
