@@ -1,0 +1,16 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start ngrok tunnel",
+            "type": "shell",
+            "command": "ngrok http 5000 --domain computational-bridger-cholinergic.ngrok-free.app",
+            "isBackground": true,
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+    ]
+}
