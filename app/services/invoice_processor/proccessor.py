@@ -38,4 +38,4 @@ class InvoiceProcessor:
         return invoice
 
     def process_invoice(self):
-        return self.invoice.get_summary()
+        return self.invoice

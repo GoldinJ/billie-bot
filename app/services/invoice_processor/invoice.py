@@ -67,6 +67,16 @@ class Invoice:
         title = f"{self.invoice_type.name.title().replace("_", " ")} - {timestamp.month}/{timestamp.year}"
         return title
     
+    def get_details(self) -> str:
+        details = ''
+        for k, v in vars(self).items():
+            if k != "text" and v:
+                detail = f"{k.title().replace("_", " ")}: {v}"
+                details += detail + "\n"
+                
+        return details
+        
+    
     def get_summary(self):
         return (
             self.invoice_type,
