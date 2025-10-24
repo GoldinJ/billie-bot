@@ -40,14 +40,14 @@ def verify():
 def handle_expense(invoice: Invoice, file_path: str):
     if invoice is None:
         logging.error("Failed to process invoice")
-        return jsonify({"error": "Failed to process invoice"}), HTTPStatus.RESET_CONTENT.value
+        return jsonify({"error": "Failed to process invoice"}), HTTPStatus.NOT_FOUND.value
     
     group_id = os.getenv("SPLITWISE_GROUP_ID")
     expense = create_expense(group_id, invoice, file_path)
     if expense is None:
         logging.info("Unsupported invoice type")
         send_message("Unsupported invoice type")
-        return jsonify({"error": "Unsupported invoice type"}), HTTPStatus.RESET_CONTENT.value
+        return jsonify({"error": "Unsupported invoice type"}), HTTPStatus.NOT_FOUND.value
     
     _id, errors = post_expense(expense)
     logging.debug(f"New expense created: {_id}")

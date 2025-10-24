@@ -40,11 +40,16 @@ class Invoice:
     to_date: Optional[str] = None
     total_sum: Optional[float] = None
     text: Optional[float] = None
+    
+    def __post_init__(self):
+        self._invoice_type = None
                 
     @property
     def invoice_type(self) -> InvoiceType:
-        return InvoiceClassifier().classify(vars(self))
-    
+        if self._invoice_type is None:
+            self._invoice_type = InvoiceClassifier().classify(vars(self))
+        return self._invoice_type
+
     @property
     def cost(self) -> float:
         if not self.total_sum:

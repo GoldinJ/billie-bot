@@ -5,5 +5,5 @@ class InvoiceType(Enum):
     ELECTRICITY = 5
     GAS = 6
     INTERNET = 8
-    PROPERTY_TAX = 45
+    PROPERTY_TAX = 45 # Arnona
     UNSUPPORTED = 0
