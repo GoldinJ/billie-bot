@@ -1,10 +1,27 @@
 import os
+import json
 import logging
 from typing import Optional, Literal, Tuple
 from google.api_core.client_options import ClientOptions
 from google.cloud import documentai
+from google.oauth2 import service_account
 
 from . import GoogleFileType
+
+def _get_credentials():
+    """Get Google Cloud credentials for authentication."""
+    # Check if service account JSON is provided as environment variable (for Heroku)
+    service_account_json = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
+    if service_account_json:
+        try:
+            service_account_info = json.loads(service_account_json)
+            return service_account.Credentials.from_service_account_info(service_account_info)
+        except (json.JSONDecodeError, KeyError) as e:
+            logging.error(f"Invalid service account JSON: {e}")
+            return None
+    
+    # Fall back to default credentials (local development with GOOGLE_APPLICATION_CREDENTIALS)
+    return None
 
 def get_mime_type(file: str) -> 'GoogleFileType':
     try:
@@ -62,7 +79,17 @@ def get_document(file_path: str,
         field_mask (Optional[str]): The field mask to specify which fields to include in the response.
     """
     client_options = ClientOptions(api_endpoint=f"{location}-documentai.googleapis.com")
-    client = documentai.DocumentProcessorServiceClient(client_options=client_options)
+    credentials = _get_credentials()
+    
+    if credentials:
+        client = documentai.DocumentProcessorServiceClient(
+            client_options=client_options, 
+            credentials=credentials
+        )
+    else:
+        # Use default credentials (local development)
+        client = documentai.DocumentProcessorServiceClient(client_options=client_options)
+    
     ext = GoogleFileType.get_mime_type(file_path)
     process_options = documentai.ProcessOptions()
 

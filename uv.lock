@@ -8,6 +8,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "flask" },
+    { name = "google-auth" },
     { name = "google-cloud-documentai" },
     { name = "gunicorn" },
     { name = "pytest" },
@@ -19,6 +20,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "flask", specifier = ">=3.1.2" },
+    { name = "google-auth", specifier = ">=2.0.0" },
     { name = "google-cloud-documentai", specifier = ">=3.6.0" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "pytest", specifier = ">=8.4.2" },

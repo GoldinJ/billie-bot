@@ -93,12 +93,70 @@ WhatsApp → Meta Webhook → Billie Bot → Google Document AI → Splitwise
    - Create a service account in your Google Cloud Project
    - Enable the Document AI API
    - Download the service account JSON key
-   - Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable
+   - For local development: Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable
+   - For Heroku deployment: Use the setup script (see Heroku Deployment section below)
 
 5. **Configure WhatsApp Webhook**:
    - Set up a WhatsApp Business account
    - Configure webhook URL to point to your application endpoint
    - Use ngrok for local development: `ngrok http 5000`
+
+## Heroku Deployment
+
+### Setting up Authentication for Heroku
+
+Since Heroku doesn't support uploading JSON files directly, you need to store your Google Cloud service account credentials as environment variables:
+
+1. **Use the setup script**:
+   ```bash
+   python scripts/setup_heroku_auth.py path/to/your-service-account.json
+   ```
+
+2. **Copy the JSON output and set it as a Heroku config var**:
+   ```bash
+   heroku config:set GOOGLE_SERVICE_ACCOUNT_JSON='{"type":"service_account","project_id":"..."}'
+   ```
+
+   Or use the Heroku Dashboard:
+   - Go to Settings → Config Vars
+   - Add Key: `GOOGLE_SERVICE_ACCOUNT_JSON`
+   - Add Value: (paste the JSON content)
+
+3. **Set all other required environment variables**:
+   ```bash
+   heroku config:set PROJECT_ID=your_gcp_project_id
+   heroku config:set LOCATION=us
+   heroku config:set PROCESSOR_ID=your_document_ai_processor_id
+   heroku config:set META_API_VERSION=v21.0
+   heroku config:set META_VERIFICATION_TOKEN=your_verification_token
+   heroku config:set ACCESS_TOKEN=your_whatsapp_access_token
+   heroku config:set PHONE_NUMBER_ID=your_phone_number_id
+   heroku config:set RECIPIENT_WAID=recipient_whatsapp_id
+   heroku config:set SPLITWISE_CONSUMER_KEY=your_splitwise_consumer_key
+   heroku config:set SPLITWISE_CONSUMER_SECRET=your_splitwise_consumer_secret
+   heroku config:set SPLITWISE_API_KEY=your_splitwise_api_key
+   heroku config:set SPLITWISE_GROUP_ID=your_default_group_id
+   heroku config:set MEDIA_DIR=./media
+   ```
+
+4. **Deploy to Heroku**:
+   ```bash
+   git add .
+   git commit -m "Add Heroku authentication support"
+   git push heroku main
+   ```
+
+### Alternative: Using Google Cloud IAM (Advanced)
+
+For production environments, you can also use Heroku's Google Cloud integration:
+
+1. Install the Google Cloud CLI buildpack:
+   ```bash
+   heroku buildpacks:add https://github.com/heroku/heroku-buildpack-google-chrome
+   ```
+
+2. Set up Workload Identity Federation (recommended for production)
+3. Configure IAM roles and service accounts
 
 ## Usage
 
